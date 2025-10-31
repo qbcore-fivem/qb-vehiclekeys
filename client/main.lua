@@ -12,6 +12,34 @@ local IsHotwiring = false
 local trunkclose = true
 local looped = false
 
+local function isBlacklistedVehicle(vehicle)
+    local isBlacklisted = false
+    for _, v in ipairs(Config.NoLockVehicles) do
+        if joaat(v) == GetEntityModel(vehicle) then
+            isBlacklisted = true
+            break;
+        end
+    end
+    if Entity(vehicle).state.ignoreLocks or GetVehicleClass(vehicle) == 13 then isBlacklisted = true end
+    return isBlacklisted
+end
+
+local function addNoLockVehicles(model)
+    Config.NoLockVehicles[#Config.NoLockVehicles + 1] = model
+end
+
+exports('addNoLockVehicles', addNoLockVehicles)
+
+local function removeNoLockVehicles(model)
+    for k, v in pairs(Config.NoLockVehicles) do
+        if v == model then
+            Config.NoLockVehicles[k] = nil
+        end
+    end
+end
+
+exports('removeNoLockVehicles', removeNoLockVehicles)
+
 local function robKeyLoop()
     if looped then return end
 
@@ -84,7 +112,7 @@ local function robKeyLoop()
             -- Hotwiring while in vehicle, also keeps engine off for vehicles you don't own keys to
             if IsPedInAnyVehicle(ped, false) and not IsHotwiring then
                 sleep = 1000
-                local vehicle = GetVehiclePedIsIn(ped)
+                local vehicle = GetVehiclePedIsIn(ped, false)
                 local plate = QBCore.Functions.GetPlate(vehicle)
 
                 if GetPedInVehicleSeat(vehicle, -1) == PlayerPedId() and not HasKeys(plate) and not isBlacklistedVehicle(vehicle) and not AreKeysJobShared(vehicle) then
@@ -105,7 +133,7 @@ local function robKeyLoop()
                 local aiming, target = GetEntityPlayerIsFreeAimingAt(playerid)
                 if aiming and (target ~= nil and target ~= 0) then
                     if DoesEntityExist(target) and IsPedInAnyVehicle(target, false) and not IsEntityDead(target) and not IsPedAPlayer(target) then
-                        local targetveh = GetVehiclePedIsIn(target)
+                        local targetveh = GetVehiclePedIsIn(target, false)
                         for _, veh in ipairs(Config.ImmuneVehicles) do
                             if GetEntityModel(targetveh) == joaat(veh) then
                                 carIsImmune = true
@@ -130,36 +158,6 @@ local function robKeyLoop()
     end
 end
 
-function isBlacklistedVehicle(vehicle)
-    local isBlacklisted = false
-    for _, v in ipairs(Config.NoLockVehicles) do
-        if joaat(v) == GetEntityModel(vehicle) then
-            isBlacklisted = true
-            break;
-        end
-    end
-    if Entity(vehicle).state.ignoreLocks or GetVehicleClass(vehicle) == 13 then isBlacklisted = true end
-    return isBlacklisted
-end
-
-function addNoLockVehicles(model)
-    Config.NoLockVehicles[#Config.NoLockVehicles + 1] = model
-end
-
-exports('addNoLockVehicles', addNoLockVehicles)
-
-function removeNoLockVehicles(model)
-    for k, v in pairs(Config.NoLockVehicles) do
-        if v == model then
-            Config.NoLockVehicles[k] = nil
-        end
-    end
-end
-
-exports('removeNoLockVehicles', removeNoLockVehicles)
-
-
-
 -----------------------
 ---- Client Events ----
 -----------------------
@@ -173,16 +171,16 @@ RegisterCommand('togglelocks', function()
     else
         ToggleVehicleLocksWithoutNui(GetVehicle())
     end
-end)
+end, false)
 
 RegisterKeyMapping('engine', Lang:t('info.engine'), 'keyboard', 'G')
 RegisterCommand('engine', function()
     local vehicle = GetVehicle()
     if not vehicle then return end
-    if not IsPedInVehicle(PlayerPedId(), vehicle) then return end
+    if not IsPedInVehicle(PlayerPedId(), vehicle, false) then return end
 
     ToggleEngine(vehicle)
-end)
+end, false)
 
 AddEventHandler('onResourceStart', function(resourceName)
     if resourceName == GetCurrentResourceName() and QBCore.Functions.GetPlayerData() ~= {} then
@@ -205,7 +203,7 @@ RegisterNetEvent('qb-vehiclekeys:client:AddKeys', function(plate)
     local ped = PlayerPedId()
     if not IsPedInAnyVehicle(ped, false) then return end
 
-    local vehicle = GetVehiclePedIsIn(ped)
+    local vehicle = GetVehiclePedIsIn(ped, false)
     local vehicleplate = QBCore.Functions.GetPlate(vehicle)
     if plate ~= vehicleplate then return end
 
@@ -217,8 +215,8 @@ RegisterNetEvent('qb-vehiclekeys:client:RemoveKeys', function(plate)
 end)
 
 RegisterNetEvent('qb-vehiclekeys:client:ToggleEngine', function()
-    local EngineOn = GetIsVehicleEngineRunning(GetVehiclePedIsIn(PlayerPedId()))
     local vehicle = GetVehiclePedIsIn(PlayerPedId(), true)
+    local EngineOn = GetIsVehicleEngineRunning(vehicle)
     if HasKeys(QBCore.Functions.GetPlate(vehicle)) then
         SetVehicleEngineOn(vehicle, not EngineOn, false, true)
     end
@@ -418,7 +416,8 @@ end
 function GetVehicle()
     local ped = PlayerPedId()
     local pos = GetEntityCoords(ped)
-    local vehicle = GetVehiclePedIsIn(PlayerPedId())
+    ---@type number | nil
+    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
     while vehicle == 0 do
         vehicle = QBCore.Functions.GetClosestVehicle()
         if #(pos - GetEntityCoords(vehicle)) > Config.LockToggleDist then
@@ -426,7 +425,7 @@ function GetVehicle()
             return
         end
     end
-    if not IsEntityAVehicle(vehicle) then vehicle = nil end
+    if vehicle ~= nil and not IsEntityAVehicle(vehicle) then vehicle = nil end
     return vehicle
 end
 
@@ -550,9 +549,9 @@ function ToggleVehicleTrunk(veh)
     SetVehicleLights(veh, 0)
     Wait(150)
     if trunkclose then
-        SetVehicleDoorOpen(veh, 5)
+        SetVehicleDoorOpen(veh, 5, false, false)
     else
-        SetVehicleDoorShut(veh, 5)
+        SetVehicleDoorShut(veh, 5, false)
     end
     trunkclose = not trunkclose
     ClearPedTasks(ped)
@@ -650,7 +649,7 @@ function CarjackVehicle(target)
     CreateThread(function()
         while isCarjacking do
             local distance = #(GetEntityCoords(PlayerPedId()) - GetEntityCoords(target))
-            if IsPedDeadOrDying(target) or distance > 7.5 then
+            if IsPedDeadOrDying(target, false) or distance > 7.5 then
                 TriggerEvent('progressbar:client:cancel')
                 FreezeEntityPosition(vehicle, false)
                 SetVehicleUndriveable(vehicle, false)
@@ -723,7 +722,7 @@ function AttemptPoliceAlert(type)
 end
 
 function MakePedFlee(ped)
-    SetPedFleeAttributes(ped, 0, 0)
+    SetPedFleeAttributes(ped, 0, false)
     TaskReactAndFleePed(ped, PlayerPedId())
 end
 
@@ -734,7 +733,7 @@ function DrawText3D(x, y, z, text)
     else
         SetTextFont(1)
     end
-    SetTextProportional(1)
+    SetTextProportional(true)
     SetTextColour(255, 255, 255, 215)
     SetTextEntry('STRING')
     SetTextCentre(true)
