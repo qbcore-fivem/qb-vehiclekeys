@@ -36,6 +36,14 @@ RegisterNetEvent('qb-vehiclekeys:server:AcquireVehicleKeys', function(plate)
     GiveKeys(src, plate)
 end)
 
+RegisterNetEvent('qb-vehiclekeys:server:RemoveVehicleKeys', function(plate)
+    local src = source
+    local hasKey = HasKeys(src, plate)
+    if not hasKey then return end
+
+    RemoveKeys(src, plate)
+end)
+
 RegisterNetEvent('qb-vehiclekeys:server:breakLockpick', function(itemName)
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then return end
