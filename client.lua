@@ -1,7 +1,7 @@
 -----------------------
 ----   Variables   ----
 -----------------------
-local QBCore = exports['qb-core']:GetCoreObject()
+local QBCore = exports['qb-core']:GetCoreObject({ 'Functions' })
 local KeysList = {}
 local isTakingKeys = false
 local isCarjacking = false
@@ -234,7 +234,7 @@ RegisterNetEvent('qb-vehiclekeys:client:GiveKeys', function(id)
         return
     end
 
-    if id and type(id) == 'number' then -- Give keys to specific ID
+    if id and type(id) == 'number' then                             -- Give keys to specific ID
         GiveKeys(id, targetPlate)
     elseif IsPedSittingInVehicle(PlayerPedId(), targetVehicle) then -- Give keys to everyone in vehicle
         local otherOccupants = GetOtherPlayersInVehicle(targetVehicle)
@@ -539,7 +539,7 @@ function ToggleVehicleTrunk(veh)
     TriggerServerEvent('InteractSound_SV:PlayWithinDistance', 5, 'lock', 0.3)
     NetworkRequestControlOfEntity(veh)
 
-   if boot == -1 and not DoesEntityExist(veh) then return end
+    if boot == -1 and not DoesEntityExist(veh) then return end
 
     SetVehicleLights(veh, 2)
     Wait(150)
@@ -630,7 +630,7 @@ end
 
 function CarjackVehicle(target)
     if not Config.CarJackEnable then return end
-    
+
     isCarjacking = true
     canCarjack = false
     loadAnimDict('mp_am_hold_up')
@@ -668,7 +668,7 @@ function CarjackVehicle(target)
         else
             carjackChance = 0.5
         end
-            
+
         if math.random() <= carjackChance then
             local plate = QBCore.Functions.GetPlate(vehicle)
             for p = 1, #occupants do
