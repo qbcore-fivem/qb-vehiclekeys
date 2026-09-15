@@ -4,6 +4,21 @@ Vehicle Keys System For QB-Core
 # Vehicle Key NUI Preview
 [[Preview Here]](https://www.youtube.com/watch?v=7E9TXR3lXPI)
 
+# Exports
+
+Server side. These are the supported integration points for other resources; do not
+trigger the internal net events directly.
+
+```lua
+-- Grant a player keys to a plate. Omit the plate to use the vehicle the player is in.
+exports['qb-vehiclekeys']:GiveKeys(source, plate)
+
+-- Revoke a player's keys to a plate.
+exports['qb-vehiclekeys']:RemoveKeys(source, plate)
+
+-- Returns whether a player holds keys to a plate.
+exports['qb-vehiclekeys']:HasKeys(source, plate)
+```
 
 # License
 
