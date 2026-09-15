@@ -3,7 +3,7 @@ game 'gta5'
 lua54 'yes'
 author 'Kakarot'
 description 'Manages vehicle doors and keys for players to lock/unlock them'
-version '1.5.0'
+version '1.6.0'
 
 shared_scripts {
     '@qb-core/shared/locale.lua',
