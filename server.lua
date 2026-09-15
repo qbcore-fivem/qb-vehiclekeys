@@ -37,9 +37,19 @@ RegisterNetEvent('qb-vehiclekeys:server:GiveVehicleKeys', function(receiver, pla
     end
 end)
 
-RegisterNetEvent('qb-vehiclekeys:server:AcquireVehicleKeys', function(plate)
+RegisterNetEvent('qb-vehiclekeys:server:AcquireVehicleKeys', function(vehicleNetId)
     local src = source
-    GiveKeys(src, plate)
+
+    if type(vehicleNetId) ~= 'number' then
+        print('AcquireVehicleKeys: expected a vehicle network id. Server side grants should use the GiveKeys export.')
+        return
+    end
+
+    local vehicle = NetworkGetEntityFromNetworkId(vehicleNetId)
+    if not DoesEntityExist(vehicle) then return end
+    if #(GetEntityCoords(GetPlayerPed(src)) - GetEntityCoords(vehicle)) > 7.5 then return end
+
+    GiveKeys(src, Trim(GetVehicleNumberPlateText(vehicle)))
 end)
 
 RegisterNetEvent('qb-vehiclekeys:server:RemoveVehicleKeys', function(plate)
